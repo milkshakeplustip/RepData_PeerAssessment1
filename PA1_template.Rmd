@@ -8,18 +8,132 @@ output:
 
 ## Loading and preprocessing the data
 
-
+```{r, echo = TRUE}
+setwd("/Users/Javier/Desktop")
+activity <- read.csv("activity.csv")
+activity$date <- as.Date(activity$date)
+```
 
 ## What is mean total number of steps taken per day?
 
+1. Total number of steps taken per day.
 
+```{r, echo = TRUE}
+total_steps <- aggregate(activity[,1], list(activity$date), sum)
+names(total_steps) <- c("Date", "Total_Steps")
+total_steps
+```
+
+2. Histogram of the total number of steps taken each day.
+
+```{r, echo = TRUE}
+hist(total_steps$Total_Steps, breaks = 20, main = "Histogram of the total 
+     number of steps taken each day", xlab = "Total steps", col = "cyan")
+```
+
+3. Mean and median of the total number of steps taken per day.
+
+```{r, echo = TRUE}
+mean_1 <- aggregate(activity[,1], list(activity$date), mean)
+median_1 <- aggregate(activity[,1], list(activity$date), median)
+names(mean_1) <- c("Date", "Mean")
+names(median_1) <- c("Date", "Median")
+mean_1
+median_1
+```
 
 ## What is the average daily activity pattern?
 
+1. Time series plot of the 5-minute inverval and average steps taken.
 
+```{r, echo = TRUE}
+time_series <- aggregate(activity[,1], list(activity$interval), mean, 
+                         na.rm = TRUE)
+names(time_series) <- c("Interval", "Average_steps")
+plot(time_series$Interval, time_series$Average_steps, main = "Time series plot
+     of the intervals and their average steps", xlab = "Interval (minutes)", 
+     ylab = "Average steps")
+lines(time_series$Interval, time_series$Average_steps, col = "magenta")
+```
+
+2. Which 5-minute interval, on average across all the days in the dataset, 
+contains the maximum number of steps?
+
+```{r, echo = TRUE}
+max(time_series$Average_steps)
+subset(time_series, time_series$Average_steps > 206)
+```
+
+It is the inverval starting in the minute 835.
 
 ## Imputing missing values
 
+1. Total number of missing values in the dataset.
 
+```{r, echo = TRUE}
+sapply(activity, function(x) sum(is.na(x)))
+```
+
+2. Creating a new dataset with the missing data filled in.
+
+Strategy: Since the median in every day is 0, the missing values are replaced
+with a 0.
+
+```{r, echo = TRUE}
+activity[is.na(activity)] <- 0
+```
+
+3. Histogram of the total number of steps taken each day.
+
+```{r, echo = TRUE}
+total_steps_replaced <- aggregate(activity[,1], list(activity$date), sum)
+names(total_steps_replaced) <- c("Date", "Total_Steps")
+hist(total_steps_replaced$Total_Steps, breaks = 20, main = "Histogram of the total 
+     number of steps taken each day (with replaced NAs)", xlab = "Total steps", 
+     col = "cyan")
+```
+
+4. Mean and median number of steps taken per day.
+
+```{r, echo = TRUE}
+mean_2 <- aggregate(activity[,1], list(activity$date), mean)
+median_2 <- aggregate(activity[,1], list(activity$date), median)
+names(mean_2) <- c("Date", "Mean")
+names(median_2) <- c("Date", "Median")
+mean_2
+median_2
+```
+
+5. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?  
+
+Since the missing values were only substituted with 0s, the only difference can
+be appreciated in the histogram, where the frequency of 0s skyrocketed in the
+new dataset. It could be expected that the 0s had an effect on the mean number
+of steps taken per day, but since those days where data exists have (if they
+have at all) very few NAs, the 0s have a negligible impact on the result. If I
+had used another strategy to fill the NAs, then the means could have suffered
+some modifications (obviously more notorious in those days with no data at all).
+Only those medians with an NA value would have changed.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+1. New factor variable indicating whether a given date is a weekday or weekend
+day.
+
+```{r, echo = TRUE}
+activity$day <- weekdays(activity$date)
+activity$day_class <- ifelse(activity$day == "Saturday" | activity$day == "Sunday", "weekend", "weekday")
+activity$day_class <- as.factor(activity$day_class)
+head(activity)
+```
+
+2. Panel plot with the time series comparing weekdays and weekends.
+
+```{r, echo = TRUE}
+library(ggplot2)
+time_series_day_class <- aggregate(activity[,1], list(activity$interval, 
+                                activity$day_class), mean, na.rm = TRUE)
+names(time_series_day_class) <- c("Interval", "Day", "Mean_steps")
+p <- ggplot(time_series_day_class, aes(Interval, Mean_steps)) + geom_line(colour = "magenta")
+p + facet_grid(Day ~ .) + ylab("Mean number of steps")
+```
